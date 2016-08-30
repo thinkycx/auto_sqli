@@ -1,2 +1,2 @@
-auto_sqli
-- detect sqli with sqlmapapi
+# auto_sqli
+detect sqli with sqlmapapi
