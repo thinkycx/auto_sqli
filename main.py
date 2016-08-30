@@ -3,37 +3,45 @@
 import requests
 import json
 from time import sleep
+import util
 
 
-cookies = "security=low; PHPSESSID=2ldsm8skp3iuqhe075rkmneso3"
-url = "http://127.0.0.1/DVWA-1.9/vulnerabilities/sqli/?id=1&Submit=Submit#"
-url = 'http://127.0.0.1/sqli-labs/Less-11/'
+
 api_url = "http://192.168.10.147:8775"
+headers = {'Content-Type':'application/json'}
 
-def getcookies(cookie):
-    # document.cookie ->requests.cookie
-    each_cookie = cookie.split(";")
-    cookies = {}
-    for i in range(len(each_cookie)):
-        each = each_cookie[i].split("=")
-        each_b = each[0].strip(" ")
-        each_a = each[1].strip(" ")
-        cookies[each_b] = str(each_a)
-    print  dict(cookies)
-    return dict(cookies)
 
-r = requests.post(url, cookies=getcookies(cookies))
-id  = json.loads(requests.get(api_url + '/task/new').text)['taskid']
-print id
-content = {'url':url}
-content['data'] = 'uname=11&passwd=11&submit=Submit'
-content['getDbs']  = True
-print content
+class task(object):
+    "describe each scan from the request"
+    def __init__(self, scan_url, data=None, cookie=None):
+        self.scan_url = scan_url
+        self.data = data
+        self.cookie = cookie
+        self.taskid = json.loads(requests.get(api_url + '/task/new').text)['taskid']
+        self.content = dict({'url':scan_url})
+        self.content['data'] = data
+        self.content['cookie'] = cookie
 
-r = requests.post(api_url + '/option/' + str(id) + '/set', data = json.dumps(content), headers={'Content-Type':'application/json'})
+        r = requests.post(api_url + '/option/' + str(self.taskid) + '/set',
+                          data = json.dumps(self.content), headers=headers)
+        print 'init...'
 
-r_start = requests.post(api_url + '/scan/' + str(id) + '/start', data=json.dumps({}), headers={'Content-Type':'application/json'})
-print r_start.json()
-while json.loads(requests.get(api_url + '/scan/' + str(id) + '/status').text)['status'] != 'terminated':
-    sleep(1)
-print requests.get(api_url + '/scan/' + str(id) + '/data').text
+    def start(self):
+        r_start = requests.post(api_url + '/scan/' + str(self.taskid) + '/start', data=json.dumps({}), headers=headers)
+        self.result =  r_start.json()
+        while json.loads(requests.get(api_url + '/scan/' + str(self.taskid) + '/status').text)['status'] != 'terminated':
+            sleep(1)
+            print 'loading'
+        print requests.get(api_url + '/scan/' + str(self.taskid) + '/data').text
+
+if __name__ == '__main__':
+    cookie = "security=low; PHPSESSID=8um6qef43dq6t9e42rtgoqlmm6"
+    url ='http://127.0.0.1/DVWA-1.9/vulnerabilities/sqli_blind/?id=1&Submit=Submit#'
+    t = task(scan_url=url,cookie=cookie)
+    t.start()
+    print t.taskid
+    print t.content
+
+
+
+
